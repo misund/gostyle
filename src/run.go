@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"runtime/debug"
 	"sort"
 	"strings"
 )
@@ -31,6 +32,11 @@ func Run(
 ) int {
 	flags := flag.NewFlagSet("gostyle", flag.ContinueOnError)
 	flags.SetOutput(stderr)
+	showVersion := flags.Bool(
+		"version",
+		false,
+		"print the version and exit",
+	)
 
 	width := flags.Int(
 		"width",
@@ -58,6 +64,12 @@ func Run(
 		}
 
 		return 2
+	}
+
+	if *showVersion {
+		_, _ = fmt.Fprintln(stdout, "gostyle "+version())
+
+		return 0
 	}
 
 	var files []string
@@ -148,4 +160,16 @@ func printViolation(
 		v.pos,
 		v.msg,
 	)
+}
+
+// version returns the module version stamped into the binary by the Go
+// toolchain: a tag such as v0.1.0 for "go install ...@v0.1.0", a pseudo-version
+// for an untagged commit, or "(devel)" for a local build.
+func version() string {
+	info, ok := debug.ReadBuildInfo()
+	if !ok || info.Main.Version == "" {
+		return "(unknown)"
+	}
+
+	return info.Main.Version
 }
