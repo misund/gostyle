@@ -56,8 +56,8 @@ func changedLines() (
 			plus := l[strings.Index(l, "+")+1:]
 			plus = plus[:strings.Index(plus, " ")]
 			start, count := plus, "1"
-			if i := strings.Index(plus, ","); i >= 0 {
-				start, count = plus[:i], plus[i+1:]
+			if before, after, ok := strings.Cut(plus, ","); ok {
+				start, count = before, after
 			}
 			s, err := strconv.Atoi(start)
 			if err != nil {

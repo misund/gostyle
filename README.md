@@ -1,5 +1,6 @@
 # gostyle
 
+[![CI](https://github.com/misund/gostyle/actions/workflows/ci.yml/badge.svg)](https://github.com/misund/gostyle/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 An opinionated Go formatting checker and auto-fixer. It enforces one rule
@@ -173,6 +174,19 @@ root; everything else lives in the `src/` package.
 `-changed` uses `git diff-index -p` (plumbing) with pinned prefixes, so user
 settings such as `diff.noprefix` and `diff.mnemonicPrefix` cannot break the
 path parsing.
+
+## Contributing
+
+- **PR titles must follow [Conventional Commits](https://www.conventionalcommits.org/)**
+  (`feat: ...`, `fix: ...`, `chore: ...`). Pull requests are squash-merged, so
+  the title becomes the commit that [release-please](https://github.com/googleapis/release-please)
+  reads to version releases and write the changelog.
+- **CI fixes mechanical problems itself.** The `autofix` workflow runs
+  `gostyle -fix`, `gofumpt -w` and `go fix`, and commits the result to your PR
+  branch as "Lord Spacington the Third, Devourer of Tabs" (see
+  [the pattern](https://tech.coop.no/blog/software-engineering/2026/08/25/lord-spacington-the-third/)).
+  Pull before you push again. Tests and `golangci-lint` only report, since
+  their findings need judgment.
 
 ## License
 

@@ -1,0 +1,79 @@
+# Lord Spacington the Third: fix deterministic problems instead of only
+# reporting them. Each fixer runs in turn, and its changes are committed to the
+# PR branch. The job then fails, so that the gate is only green on a head that
+# needed no fixes. See
+# https://tech.coop.no/blog/software-engineering/2026/08/25/lord-spacington-the-third/
+name: Autofix
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: autofix-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  autofix:
+    name: autofix
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          # Check out the PR branch itself, not the synthetic merge commit.
+          repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+          ref: ${{ github.event.pull_request.head.ref || github.ref_name }}
+          # Pushes made with GITHUB_TOKEN do not trigger new workflow runs, so a
+          # fix commit would leave the new head without checks. Set the
+          # AUTOMATION_TOKEN secret (a PAT or app token with contents: write) to
+          # have the new head checked.
+          token: ${{ secrets.AUTOMATION_TOKEN || secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-go@v7.0.0
+        with:
+          go-version: stable
+
+      - name: Build gostyle from this checkout
+        run: go build -o "$RUNNER_TEMP/gostyle" .
+
+      - name: Run gostyle
+        run: '"$RUNNER_TEMP/gostyle" -fix . || true'
+      - uses: ./.github/actions/commit-and-push-with-spacington
+        id: gostyle
+        with:
+          commit-message: "style: apply gostyle fixes"
+          branch: ${{ github.event.pull_request.head.ref }}
+
+      - name: Run gofumpt
+        run: |
+          go install mvdan.cc/gofumpt@v0.12.0
+          gofumpt -w .
+      - uses: ./.github/actions/commit-and-push-with-spacington
+        id: gofumpt
+        with:
+          commit-message: "style: format with gofumpt"
+          branch: ${{ github.event.pull_request.head.ref }}
+
+      - name: Run go fix
+        run: go fix ./...
+      - uses: ./.github/actions/commit-and-push-with-spacington
+        id: gofix
+        with:
+          commit-message: "refactor: apply go fix"
+          branch: ${{ github.event.pull_request.head.ref }}
+
+      - name: Verify gostyle is clean
+        run: '"$RUNNER_TEMP/gostyle" .'
+
+      - name: Fail if fixes were needed
+        if: |
+          steps.gostyle.outputs.changed == 'true' ||
+          steps.gofumpt.outputs.changed == 'true' ||
+          steps.gofix.outputs.changed == 'true'
+        run: |
+          echo "::error::Autofixes were needed. On a same-repo PR they were committed to the branch; this run is superseded by the run on the new head."
+          exit 1

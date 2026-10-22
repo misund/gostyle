@@ -55,7 +55,7 @@ func fixSource(
 	error,
 ) {
 	src := orig
-	for pass := 0; pass < maxFixPasses; pass++ {
+	for range maxFixPasses {
 		vs, err := checkSource(
 			path,
 			src,

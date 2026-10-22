@@ -1,0 +1,55 @@
+name: "Commit and Push with Lord Spacington"
+description: "Commits dirty working tree changes and pushes with a rebase for concurrency safety."
+
+inputs:
+  commit-message:
+    description: "The commit message to use."
+    required: true
+  branch:
+    description: "The branch to push to."
+    required: true
+
+outputs:
+  changed:
+    description: Whether there are changes
+    value: ${{ steps.detect.outputs.changed }}
+  committed:
+    description: Whether changes were committed and pushed
+    value: ${{ steps.commit.outputs.committed }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Detect changes
+      id: detect
+      shell: bash
+      run: |
+        if [[ -z $(git status --porcelain) ]]; then
+          echo "changed=false" >> "$GITHUB_OUTPUT"
+        else
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+        fi
+
+    - name: Commit and push changes
+      id: commit
+      if: |
+        github.event_name == 'pull_request' &&
+        github.event.pull_request.head.repo.full_name == github.repository &&
+        steps.detect.outputs.changed == 'true'
+      shell: bash
+      env:
+        BRANCH: ${{ inputs.branch }}
+        COMMIT_MESSAGE: ${{ inputs.commit-message }}
+      run: |
+        git config user.name "Lord Spacington the Third, Devourer of Tabs[bot]"
+        git config user.email "spacington-the-third@users.noreply.github.com"
+        git add -A
+        git commit -m "$COMMIT_MESSAGE"
+
+        git pull --rebase origin "$BRANCH" || {
+          echo "::error::Failed to rebase. There may be conflicts with recent pushes."
+          exit 1
+        }
+        git push origin "HEAD:$BRANCH"
+
+        echo "committed=true" >> "$GITHUB_OUTPUT"
