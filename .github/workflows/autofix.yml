@@ -40,12 +40,26 @@ jobs:
       - name: Build gostyle from this checkout
         run: go build -o "$RUNNER_TEMP/gostyle" .
 
-      - name: Run gostyle
-        run: '"$RUNNER_TEMP/gostyle" -fix . || true'
+      - name: Run go fix
+        run: go fix ./...
       - uses: ./.github/actions/commit-and-push-with-spacington
-        id: gostyle
+        id: gofix
         with:
-          commit-message: "style: apply gostyle fixes"
+          commit-message: "refactor: apply go fix"
+          branch: ${{ github.event.pull_request.head.ref }}
+
+      - name: Install golangci-lint
+        uses: golangci/golangci-lint-action@v9.3.0
+        with:
+          version: v2.15.0
+          install-only: true
+      - name: Run golangci-lint --fix
+        # Issues without an autofix are reported by the verify step below.
+        run: golangci-lint run --fix || true
+      - uses: ./.github/actions/commit-and-push-with-spacington
+        id: golangci
+        with:
+          commit-message: "style: apply golangci-lint fixes"
           branch: ${{ github.event.pull_request.head.ref }}
 
       - name: Run gofumpt
@@ -58,13 +72,16 @@ jobs:
           commit-message: "style: format with gofumpt"
           branch: ${{ github.event.pull_request.head.ref }}
 
-      - name: Run go fix
-        run: go fix ./...
+      - name: Run gostyle
+        run: '"$RUNNER_TEMP/gostyle" -fix . || true'
       - uses: ./.github/actions/commit-and-push-with-spacington
-        id: gofix
+        id: gostyle
         with:
-          commit-message: "refactor: apply go fix"
+          commit-message: "style: apply gostyle fixes"
           branch: ${{ github.event.pull_request.head.ref }}
+
+      - name: Verify golangci-lint is clean
+        run: golangci-lint run
 
       - name: Verify gostyle is clean
         run: '"$RUNNER_TEMP/gostyle" .'
@@ -73,7 +90,8 @@ jobs:
         if: |
           steps.gostyle.outputs.changed == 'true' ||
           steps.gofumpt.outputs.changed == 'true' ||
-          steps.gofix.outputs.changed == 'true'
+          steps.gofix.outputs.changed == 'true' ||
+          steps.golangci.outputs.changed == 'true'
         run: |
           echo "::error::Autofixes were needed. On a same-repo PR they were committed to the branch; this run is superseded by the run on the new head."
           exit 1
