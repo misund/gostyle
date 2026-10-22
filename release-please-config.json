@@ -6,7 +6,8 @@
       "bump-minor-pre-major": true,
       "bump-patch-for-minor-pre-major": false,
       "include-component-in-tag": false,
-      "initial-version": "0.1.0"
+      "initial-version": "0.1.0",
+      "always-update": true
     }
   }
 }
