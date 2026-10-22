@@ -1,7 +1,10 @@
 name: PR title
 
 on:
-  pull_request_target:
+  # pull_request, not pull_request_target: runs are created for pushes made by
+  # release-please with GITHUB_TOKEN, while pull_request_target runs were not.
+  # The action only reads the PR title, so the read-only fork token is enough.
+  pull_request:
     types: [opened, edited, synchronize, reopened]
 
 permissions:
