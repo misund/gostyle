@@ -66,7 +66,7 @@ func Run(
 		var err error
 		ranges, err = changedLines()
 		if err != nil {
-			fmt.Fprintln(stderr, err)
+			printErr(stderr, err)
 			return 2
 		}
 		if flags.NArg() == 0 {
@@ -83,7 +83,7 @@ func Run(
 		}
 		found, err := collect(arg)
 		if err != nil {
-			fmt.Fprintln(stderr, err)
+			printErr(stderr, err)
 			return 2
 		}
 		files = append(files, found...)
@@ -100,7 +100,7 @@ func Run(
 					return !*changed || inRanges(ranges, v.pos)
 				},
 			); err != nil {
-				fmt.Fprintln(stderr, err)
+				printErr(stderr, err)
 				return 2
 			}
 		}
@@ -110,7 +110,7 @@ func Run(
 			*tab,
 		)
 		if err != nil {
-			fmt.Fprintln(stderr, err)
+			printErr(stderr, err)
 			return 2
 		}
 		for _, v := range vs {
@@ -118,12 +118,7 @@ func Run(
 				continue
 			}
 			failed = true
-			fmt.Fprintf(
-				stdout,
-				"%s: %s\n",
-				v.pos,
-				v.msg,
-			)
+			printViolation(stdout, v)
 		}
 	}
 	if failed {
@@ -131,4 +126,26 @@ func Run(
 	}
 
 	return 0
+}
+
+// printErr writes err to w. A failure to write diagnostics has no useful
+// recovery, so it is deliberately ignored.
+func printErr(
+	w io.Writer,
+	err error,
+) {
+	_, _ = fmt.Fprintln(w, err)
+}
+
+// printViolation writes v to w as "file:line:col: message".
+func printViolation(
+	w io.Writer,
+	v violation,
+) {
+	_, _ = fmt.Fprintf(
+		w,
+		"%s: %s\n",
+		v.pos,
+		v.msg,
+	)
 }
