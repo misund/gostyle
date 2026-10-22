@@ -236,3 +236,37 @@ func TestGeneratedFilesSkipped(t *testing.T) {
 		t.Fatalf("generated file should be skipped, got %v", msgs)
 	}
 }
+
+func TestCheckReportsEachPositionOnce(t *testing.T) {
+	src := "package a\n\n" +
+		"func a(int) int { return 0 }\n" +
+		"func b(int) int { return 0 }\n" +
+		"func c(int) int { return 0 }\n\n" +
+		"func f() { _ = a(b(c(a(b(c(1)))))) }\n"
+	vs, err := checkSource(
+		"x.go",
+		[]byte(src),
+		80,
+		4,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(vs) == 0 {
+		t.Fatal("want violations for the deeply nested call")
+	}
+	seen := map[[2]int]string{}
+	for _, v := range vs {
+		key := [2]int{v.pos.Line, v.pos.Column}
+		if first, dup := seen[key]; dup {
+			t.Errorf(
+				"position %d:%d reported twice: %q and %q",
+				key[0],
+				key[1],
+				first,
+				v.msg,
+			)
+		}
+		seen[key] = v.msg
+	}
+}

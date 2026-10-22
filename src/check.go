@@ -93,7 +93,7 @@ func checkSource(
 		}
 		return true
 	})
-	sort.Slice(c.out, func(
+	sort.SliceStable(c.out, func(
 		i,
 		j int,
 	) bool {
@@ -103,7 +103,25 @@ func checkSource(
 		}
 		return a.Column < b.Column
 	})
-	return c.out, nil
+
+	return dedupe(c.out), nil
+}
+
+// dedupe keeps the first violation at each source position. One call can be
+// reached by several rules (argument count, nesting, an enclosing split), all
+// of which ask for the same rewrite; reporting each would repeat the line.
+// vs must be sorted by position, and the sort must be stable so that the first
+// (outermost, most specific) reason wins.
+func dedupe(vs []violation) []violation {
+	var out []violation
+	for _, v := range vs {
+		if n := len(out); n > 0 && out[n-1].pos.Line == v.pos.Line && out[n-1].pos.Column == v.pos.Column {
+			continue
+		}
+		out = append(out, v)
+	}
+
+	return out
 }
 
 func (c *checker) line(p token.Pos) int { return c.fset.Position(p).Line }
