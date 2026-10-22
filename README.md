@@ -82,7 +82,7 @@ go build -o ~/bin/gostyle .
 ## Usage
 
 ```sh
-gostyle [-width 80] [-tab 4] [-changed] [-fix] [path...]
+gostyle [-width 80] [-tab 4] [-changed] [-fix] [-version] [path...]
 ```
 
 Each path is a `.go` file or a directory (searched recursively). A trailing
@@ -92,6 +92,7 @@ Each path is a `.go` file or a directory (searched recursively). A trailing
 |---|---|
 | `-fix` | Rewrite files to fix auto-fixable violations, then report the rest. |
 | `-changed` | Only report (or fix) violations on lines added or modified relative to `HEAD`, plus all lines of untracked files. With no paths, checks every changed `.go` file in the current git repository. |
+| `-version` | Print the version and exit. A `go install ...@vX.Y.Z` build reports that tag. |
 | `-width` | Maximum columns for an inline call. Default 80. |
 | `-tab` | Columns per tab when measuring width. Default 4. |
 

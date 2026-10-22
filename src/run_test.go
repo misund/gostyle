@@ -182,6 +182,12 @@ func TestRunExitCodes(t *testing.T) {
 			wantStderr: "flag provided but not defined",
 		},
 		{
+			name:       "version",
+			args:       []string{"-version"},
+			wantCode:   0,
+			wantStdout: "gostyle ",
+		},
+		{
 			name:       "help exits cleanly and prints usage",
 			args:       []string{"-h"},
 			wantCode:   0,
